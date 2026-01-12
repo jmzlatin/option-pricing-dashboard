@@ -11,7 +11,9 @@ def generate_sidebar():
         # Input as percentage (e.g. 5.0 for 5%)
         r_input = st.number_input("Risk-Free Interest Rate (%)", value=5.0, step=0.01)
         interest_rate = r_input / 100
-
+        # NEW: Number of contracts to calculate total cost
+        num_contracts = st.number_input("Number of Contracts", value=1, step=1)
+        
         st.markdown("---")
         st.header("📉 Heatmap Parameters")
         spot_min = st.number_input("Min Spot Price", value=current_price*0.8)
@@ -37,6 +39,7 @@ def generate_sidebar():
         "time_to_maturity": time_to_maturity,
         "volatility": volatility,
         "interest_rate": interest_rate,
+        "num_contracts": num_contracts,
         "spot_min": spot_min,
         "spot_max": spot_max,
         "vol_min": vol_min,

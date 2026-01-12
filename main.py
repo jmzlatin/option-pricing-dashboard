@@ -33,6 +33,6 @@ call_price, put_price = bs_model.calculate_prices()
 greeks = bs_model.calculate_greeks()
 
 # 5. Display Output (Views)
-display_metrics(call_price, put_price)
+display_metrics(call_price, put_price, input_data["num_contracts"])
 display_greeks(greeks)
 display_heatmaps(bs_model, input_data)
