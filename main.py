@@ -2,72 +2,47 @@ import streamlit as st
 
 st.set_page_config(
     page_title="Quant Options Dashboard",
-    page_icon="📈",
+    page_icon="⚡",
     layout="wide"
 )
 
-# Custom CSS for the cards
-st.markdown("""
-    <style>
-    .card {
-        background-color: #f0f2f6;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
-        text-align: center;
-        height: 200px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-    }
-    .card:hover {
-        background-color: #e1e4e8;
-        transform: scale(1.02);
-        transition: all 0.2s;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
+# --- Header ---
 st.title("⚡ Quantitative Options Pricing Engine")
 st.markdown("### Welcome to the Derivatives Analytics Suite")
 st.markdown("""
 This project demonstrates advanced financial engineering concepts using Python. 
-Navigate to any module below to explore different pricing methodologies and risk visualizations.
+Select a module below to launch the respective analysis tool.
 """)
 
 st.divider()
 
-# Creating a 3-column layout for navigation cards
+# --- Navigation Section ---
 col1, col2, col3 = st.columns(3)
 
+# Column 1: Pricing Models
 with col1:
-    st.markdown('<div class="card">', unsafe_allow_html=True)
     st.header("📊")
     st.subheader("Pricing Models")
-    st.caption("Black-Scholes & Binomial")
+    st.markdown("Black-Scholes & Binomial Trees for European/American options.")
     st.page_link("pages/1_Pricing_Models.py", label="Launch Model", icon="🚀")
-    st.markdown('</div>', unsafe_allow_html=True)
 
+# Column 2: Strategy Builder
 with col2:
-    st.markdown('<div class="card">', unsafe_allow_html=True)
     st.header("🏗️")
     st.subheader("Strategy Builder")
-    st.caption("Straddles & Iron Condors")
+    st.markdown("Analyze PnL for Straddles, Iron Condors, and custom multi-leg trades.")
     st.page_link("pages/2_Strategy_Builder.py", label="Build Strategy", icon="🛠️")
-    st.markdown('</div>', unsafe_allow_html=True)
 
+# Column 3: Monte Carlo
 with col3:
-    st.markdown('<div class="card">', unsafe_allow_html=True)
     st.header("🎲")
     st.subheader("Monte Carlo")
-    st.caption("Stochastic Simulations")
+    st.markdown("Stochastic simulations using Geometric Brownian Motion (GBM).")
     st.page_link("pages/3_Monte_Carlo.py", label="Run Simulation", icon="📉")
-    st.markdown('</div>', unsafe_allow_html=True)
 
 st.divider()
 
-# Footer / About Section
+# --- Footer ---
 st.info("""
 **Project Architecture:**
 * **Tech Stack:** Python, Streamlit, NumPy, Plotly
