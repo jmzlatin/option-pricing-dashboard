@@ -1,6 +1,6 @@
 import pytest
-from binomial_model import BinomialModel
-from bs_model import BlackScholes
+from models.binomial_model import BinomialModel
+from models.bs_model import BlackScholes
 
 def test_binomial_vs_black_scholes():
     # Setup parameters

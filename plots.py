@@ -1,6 +1,6 @@
 import plotly.graph_objects as go
 import numpy as np
-from bs_model import BlackScholes
+from models.bs_model import BlackScholes
 
 def plot_heatmap(bs_model, spot_range, vol_range, strike):
     # Create a grid of Spot Prices and Volatilities
