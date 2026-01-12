@@ -24,3 +24,21 @@ def test_vectorized_payoff():
     expected = np.array([-2.0, -2.0, 8.0])
     result = calculate_payoff(spots, 100, 2, "Call", "Long")
     np.testing.assert_array_equal(result, expected)
+    
+def test_stock_payoff():
+    """
+    Test the new 'Stock' leg type.
+    Long Stock at 100.
+    If Price goes to 110 -> Profit 10.
+    If Price goes to 90 -> Loss 10.
+    """
+    # Test Long Stock
+    profit_up = calculate_payoff(spot_prices=110, strike_price=100, premium=0, option_type="Stock", position_type="Long")
+    assert profit_up == 10.0
+    
+    profit_down = calculate_payoff(spot_prices=90, strike_price=100, premium=0, option_type="Stock", position_type="Long")
+    assert profit_down == -10.0
+    
+    # Test Short Stock
+    short_profit = calculate_payoff(spot_prices=90, strike_price=100, premium=0, option_type="Stock", position_type="Short")
+    assert short_profit == 10.0

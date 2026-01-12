@@ -3,19 +3,29 @@ import plotly.graph_objects as go
 
 def calculate_payoff(spot_prices, strike_price, premium, option_type, position_type):
     """
-    Calculates PnL for a single option leg over a range of spot prices.
-    position_type: 'Long' (Buy) or 'Short' (Sell)
+    Calculates PnL for a single leg.
+    Now supports 'Call', 'Put', and 'Stock'.
+    For Stock: 'strike_price' is treated as the Entry Price. 'premium' is ignored (or 0).
     """
+    if option_type == "Stock":
+        # Stock payoff is linear: (Current Price - Entry Price)
+        # We use 'strike_price' to store the Entry Price
+        payoff = spot_prices - strike_price
+        
+        if position_type == "Long":
+            return payoff
+        else:
+            return -payoff
+
+    # --- Standard Option Logic ---
     if option_type == "Call":
         intrinsic_value = np.maximum(spot_prices - strike_price, 0)
-    else:
+    else: # Put
         intrinsic_value = np.maximum(strike_price - spot_prices, 0)
     
     if position_type == "Long":
-        # profit = intrinsic value - cost to buy
         return intrinsic_value - premium
     else:
-        # profit = money received - intrinsic value liability
         return premium - intrinsic_value
 
 def plot_strategy(spot_range, strategy_name, legs):
