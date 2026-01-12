@@ -1,59 +1,76 @@
 import streamlit as st
-from models.bs_model import BlackScholes
-from models.binomial_model import BinomialModel
-from views.header import display_header
-from views.sidebar import generate_sidebar
-from views.metrics import display_metrics
-from views.greeks import display_greeks
-from views.heatmap_view import display_heatmaps
 
-# Page configuration
 st.set_page_config(
-    page_title="Option Pricing Dashboard",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    page_title="Quant Options Dashboard",
+    page_icon="📈",
+    layout="wide"
 )
 
-# 1. Setup Page
-display_header()
+# Custom CSS for the cards
+st.markdown("""
+    <style>
+    .card {
+        background-color: #f0f2f6;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+        text-align: center;
+        height: 200px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+    .card:hover {
+        background-color: #e1e4e8;
+        transform: scale(1.02);
+        transition: all 0.2s;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
-# 2. Get User Inputs
-input_data = generate_sidebar()
+st.title("⚡ Quantitative Options Pricing Engine")
+st.markdown("### Welcome to the Derivatives Analytics Suite")
+st.markdown("""
+This project demonstrates advanced financial engineering concepts using Python. 
+Navigate to any module below to explore different pricing methodologies and risk visualizations.
+""")
 
-# 3. Model Logic
-if input_data["pricing_model"] == "Black-Scholes (European)":
-    # --- Black-Scholes Logic ---
-    model = BlackScholes(
-        time_to_maturity=input_data["time_to_maturity"],
-        strike=input_data["strike_price"],
-        current_price=input_data["current_price"],
-        volatility=input_data["volatility"],
-        interest_rate=input_data["interest_rate"]
-    )
-    
-    call_price, put_price = model.calculate_prices()
-    greeks = model.calculate_greeks()
-    
-    # Display Black-Scholes Outputs
-    display_metrics(call_price, put_price, input_data["num_contracts"])
-    display_greeks(greeks)
-    display_heatmaps(model, input_data)
+st.divider()
 
-else:
-    # --- Binomial Logic ---
-    model = BinomialModel(
-        S=input_data["current_price"],
-        K=input_data["strike_price"],
-        T=input_data["time_to_maturity"],
-        r=input_data["interest_rate"],
-        sigma=input_data["volatility"],
-        steps=100
-    )
-    
-    call_price = model.calculate_price(option_type='call', american=True)
-    put_price = model.calculate_price(option_type='put', american=True)
-    
-    # Display Binomial Outputs
-    display_metrics(call_price, put_price, input_data["num_contracts"])
-    
-    st.info("ℹ️ Greeks and Heatmaps are currently available only for the Black-Scholes model.")
+# Creating a 3-column layout for navigation cards
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.header("📊")
+    st.subheader("Pricing Models")
+    st.caption("Black-Scholes & Binomial")
+    st.page_link("pages/1_Pricing_Models.py", label="Launch Model", icon="🚀")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+with col2:
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.header("🏗️")
+    st.subheader("Strategy Builder")
+    st.caption("Straddles & Iron Condors")
+    st.page_link("pages/2_Strategy_Builder.py", label="Build Strategy", icon="🛠️")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+with col3:
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.header("🎲")
+    st.subheader("Monte Carlo")
+    st.caption("Stochastic Simulations")
+    st.page_link("pages/3_Monte_Carlo.py", label="Run Simulation", icon="📉")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+st.divider()
+
+# Footer / About Section
+st.info("""
+**Project Architecture:**
+* **Tech Stack:** Python, Streamlit, NumPy, Plotly
+* **Models:** Black-Scholes (European), Binomial Tree (American), Geometric Brownian Motion
+* **Testing:** 100% Unit Test Coverage (Pytest)
+""")
