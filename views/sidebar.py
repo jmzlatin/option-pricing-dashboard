@@ -3,6 +3,12 @@ import streamlit as st
 def generate_sidebar():
     with st.sidebar:
         st.header("📊 Model Parameters")
+        # NEW: Model Selection
+        pricing_model = st.selectbox(
+            "Pricing Model",
+            ("Black-Scholes (European)", "Binomial (American)")
+        )
+        st.markdown("---")
         current_price = st.number_input("Current Asset Price", value=100.0)
         strike_price = st.number_input("Strike Price", value=100.0)
         time_to_maturity = st.number_input("Time to Maturity (Years)", value=1.0)
@@ -34,6 +40,7 @@ def generate_sidebar():
 
     # Return a dictionary of all inputs
     return {
+        "pricing_model": pricing_model,
         "current_price": current_price,
         "strike_price": strike_price,
         "time_to_maturity": time_to_maturity,

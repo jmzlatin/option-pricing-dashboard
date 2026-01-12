@@ -19,6 +19,6 @@ def display_heatmaps(bs_model, input_data):
 
     col1, col2 = st.columns(2)
     with col1:
-        st.plotly_chart(call_heatmap, use_container_width=True)
+        st.plotly_chart(call_heatmap, width="stretch") # Updated parameter
     with col2:
-        st.plotly_chart(put_heatmap, use_container_width=True)
+        st.plotly_chart(put_heatmap, width="stretch") # Updated parameter
