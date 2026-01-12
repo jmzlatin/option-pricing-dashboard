@@ -40,7 +40,7 @@ def generate_sidebar():
 
     # Return a dictionary of all inputs
     return {
-        "pricing_model": pricing_model,
+        "pricing_model": pricing_model,  # <--- THIS LINE IS MISSING!
         "current_price": current_price,
         "strike_price": strike_price,
         "time_to_maturity": time_to_maturity,
