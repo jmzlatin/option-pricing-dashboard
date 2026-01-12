@@ -7,7 +7,7 @@ import os
 # Add parent directory to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from bs_model import BlackScholes
+from models.bs_model import BlackScholes
 from plots import plot_heatmap
 
 def test_plot_heatmap_generation():
