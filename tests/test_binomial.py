@@ -1,5 +1,5 @@
 import pytest
-from models.binomial_model import BinomialModel
+from models.binomial import BinomialModel
 from models.bs_model import BlackScholes
 
 def test_binomial_vs_black_scholes():
