@@ -99,4 +99,4 @@ if legs:
 
     # Show the Legs Table
     st.write("### Strategy Composition")
-    st
+    st.table(legs)
