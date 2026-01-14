@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+from datetime import date, timedelta
 from models.bs_model import BlackScholes
 from models.binomial import BinomialModel
 from plots import plot_heatmap, plot_greek_surface
@@ -33,7 +34,7 @@ st.markdown("""
     font-size: 1.2rem;
     font-weight: bold;
     margin-bottom: 5px;
-    color: #4a4a4a; /* <--- FIXED: Forces text to be dark grey, even in Dark Mode */
+    color: #4a4a4a; /* Dark Grey Text */
 }
 .metric-value {
     font-size: 2.5rem;
@@ -49,7 +50,24 @@ with st.sidebar:
     st.header("Model Parameters")
     current_price = st.number_input("Current Asset Price", value=100.0)
     strike_price = st.number_input("Strike Price", value=100.0)
-    time_to_maturity = st.number_input("Time to Maturity (Years)", value=1.0)
+    
+    # --- NEW: Date Picker Logic ---
+    today = date.today()
+    default_expiry = today + timedelta(days=365) # Default to 1 year out
+    
+    expiry_date = st.date_input(
+        "Expiry Date", 
+        value=default_expiry, 
+        min_value=today + timedelta(days=1) # Prevent selecting today/past
+    )
+    
+    # Calculate Time to Maturity (T) in Years
+    days_to_expiry = (expiry_date - today).days
+    time_to_maturity = days_to_expiry / 365.0
+    
+    st.caption(f"Time to Maturity: {days_to_expiry} days ({time_to_maturity:.2f} years)")
+    # -------------------------------
+
     volatility = st.number_input("Volatility (σ)", value=0.2)
     risk_free_rate = st.number_input("Risk-Free Rate (%)", value=5.0) / 100
     
@@ -75,7 +93,7 @@ else:
     bs_temp = BlackScholes(time_to_maturity, strike_price, current_price, volatility, risk_free_rate)
     greeks = bs_temp.calculate_greeks()
 
-# --- Display Prices (Restored Green/Red Cards) ---
+# --- Display Prices ---
 st.subheader("Option Prices")
 col1, col2 = st.columns(2)
 
@@ -97,7 +115,7 @@ with col2:
 
 st.markdown("") # Spacing
 
-# --- Display Greeks (Restored Organized Tabs) ---
+# --- Display Greeks ---
 st.subheader("Option Greeks")
 greek_tab1, greek_tab2 = st.tabs(["Call Greeks", "Put Greeks"])
 
@@ -119,7 +137,7 @@ with greek_tab2:
 
 st.markdown("---")
 
-# --- Advanced Visualization Tabs (New 3D Surface Included) ---
+# --- Advanced Visualization Tabs ---
 st.subheader("Advanced Analysis")
 viz_tab1, viz_tab2 = st.tabs(["🔥 Heatmap", "🧊 3D Greek Surface"])
 
@@ -132,10 +150,10 @@ with viz_tab1:
     h_col1, h_col2 = st.columns(2)
     with h_col1:
         st.write("**Call Price Heatmap**")
-        st.plotly_chart(call_heatmap, width='stretch')
+        st.plotly_chart(call_heatmap, use_container_width=True)
     with h_col2:
         st.write("**Put Price Heatmap**")
-        st.plotly_chart(put_heatmap, width='stretch')
+        st.plotly_chart(put_heatmap, use_container_width=True)
 
 with viz_tab2:
     st.write("Visualizing how Greeks sensitivity changes with Price & Time")
@@ -154,4 +172,4 @@ with viz_tab2:
         greek_type=greek_selector
     )
     
-    st.plotly_chart(surface_fig, width='stretch')
+    st.plotly_chart(surface_fig, use_container_width=True)
