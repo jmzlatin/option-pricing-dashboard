@@ -46,124 +46,132 @@ st.markdown("""
 
 st.title("📊 Option Pricing Models")
 
-# --- Initialize Session State for Inputs ---
+# --- Initialize Session State ---
 if 'spot_price' not in st.session_state:
     st.session_state.spot_price = 100.0
 if 'volatility' not in st.session_state:
-    st.session_state.volatility = 20.0 # Default to 20%
+    st.session_state.volatility = 20.0 
 if 'risk_free_rate' not in st.session_state:
-    st.session_state.risk_free_rate = 4.0 # Default to 4%
+    st.session_state.risk_free_rate = 4.0
+
+# --- Helper Function: Caching to prevent 429 Errors ---
+@st.cache_data(ttl=300) # Cache for 5 minutes
+def get_stock_data(ticker_symbol):
+    try:
+        ticker = yf.Ticker(ticker_symbol)
+        history = ticker.history(period="1d")
+        if history.empty:
+            return None
+        return history['Close'].iloc[-1]
+    except:
+        return None
+
+@st.cache_data(ttl=300)
+def get_treasury_rate(ticker_symbol):
+    try:
+        data = yf.Ticker(ticker_symbol).history(period="1d")
+        if data.empty:
+            return None
+        return data['Close'].iloc[-1]
+    except:
+        return None
+
+@st.cache_data(ttl=300)
+def get_historical_vol(ticker_symbol, period):
+    try:
+        ticker = yf.Ticker(ticker_symbol)
+        hist_data = ticker.history(period=period)
+        if len(hist_data) > 10:
+            hist_data['Log Returns'] = np.log(hist_data['Close'] / hist_data['Close'].shift(1))
+            hist_vol = hist_data['Log Returns'].std() * np.sqrt(252)
+            return hist_vol
+        return None
+    except:
+        return None
 
 # --- Sidebar: User Inputs ---
 with st.sidebar:
     st.header("Market Data Parameters")
     
-    # 1. Ticker Input
     ticker_input = st.text_input("Ticker Symbol (e.g. AAPL)", value="AAPL")
     
-    # 2. Expiry Date
     today = date.today()
     default_expiry = today + timedelta(days=365)
     expiry_date = st.date_input("Expiry Date", value=default_expiry, min_value=today + timedelta(days=1))
     
-    # Calculate Time to Maturity (T)
     days_to_expiry = (expiry_date - today).days
     time_to_maturity = days_to_expiry / 365.0
     st.caption(f"Time to Maturity: {days_to_expiry} days ({time_to_maturity:.2f} years)")
 
-    # 3. Dynamic Fetch Button (Prices + Volatility + Risk Free Rate)
     if st.button("Fetch Market Data"):
-        try:
-            with st.spinner(f"Fetching data for {ticker_input}..."):
-                # --- A. Stock Price ---
-                ticker = yf.Ticker(ticker_input)
-                history = ticker.history(period="1d")
-                if not history.empty:
-                    current_price = history['Close'].iloc[-1]
-                    st.session_state.spot_price = float(current_price)
-                    st.success(f"Spot Price: ${current_price:.2f}")
-                
-                # --- B. Smart Treasury Yield Selection ---
-                # Select the right treasury note based on maturity
-                if time_to_maturity <= 0.25:
-                    treasury_ticker = "^IRX" # 13 Week Bill
-                    rate_name = "13-Week T-Bill"
-                elif time_to_maturity <= 5:
-                    treasury_ticker = "^FVX" # 5 Year Note
-                    rate_name = "5-Year T-Note"
-                elif time_to_maturity <= 10:
-                    treasury_ticker = "^TNX" # 10 Year Note
-                    rate_name = "10-Year T-Note"
-                else:
-                    treasury_ticker = "^TYX" # 30 Year Bond
-                    rate_name = "30-Year T-Bond"
-                
-                # Fetch Yield
-                treasury_data = yf.Ticker(treasury_ticker).history(period="1d")
-                if not treasury_data.empty:
-                    market_rate = treasury_data['Close'].iloc[-1]
-                    st.session_state.risk_free_rate = float(market_rate)
-                    st.info(f"Risk-Free Rate ({rate_name}): {market_rate:.2f}%")
+        ticker_symbol = ticker_input.upper() # Force Uppercase
+        
+        with st.spinner(f"Fetching data for {ticker_symbol}..."):
+            # 1. Fetch Price
+            price = get_stock_data(ticker_symbol)
+            if price:
+                st.session_state.spot_price = float(price)
+                st.success(f"Spot Price ({ticker_symbol}): ${price:.2f}")
+            else:
+                st.error(f"Could not fetch price for {ticker_symbol}")
+                st.stop()
 
-                # --- C. Volatility Logic ---
-                if time_to_maturity < 0.25:
-                    period = "3mo"
-                elif time_to_maturity < 0.5:
-                    period = "6mo"
-                elif time_to_maturity < 1.0:
-                    period = "1y"
-                elif time_to_maturity < 2.0:
-                    period = "2y"
-                elif time_to_maturity < 5.0:
-                    period = "5y"
-                else:
-                    period = "10y"
-                
-                hist_data = ticker.history(period=period)
-                if len(hist_data) > 10: 
-                    hist_data['Log Returns'] = np.log(hist_data['Close'] / hist_data['Close'].shift(1))
-                    hist_vol = hist_data['Log Returns'].std() * np.sqrt(252)
-                    st.session_state.volatility = float(hist_vol * 100) 
-                    st.info(f"Vol ({period}): {hist_vol*100:.1f}%")
-                else:
-                    st.warning(f"Not enough data for {period} volatility.")
+            # 2. Smart Treasury Logic
+            if time_to_maturity <= 2.0:
+                tn_ticker = "^IRX"
+                tn_name = "13-Week T-Bill"
+            elif time_to_maturity <= 5.0:
+                tn_ticker = "^FVX"
+                tn_name = "5-Year T-Note"
+            elif time_to_maturity <= 10.0:
+                tn_ticker = "^TNX"
+                tn_name = "10-Year T-Note"
+            else:
+                tn_ticker = "^TYX"
+                tn_name = "30-Year T-Bond"
 
-        except Exception as e:
-            st.error(f"Error fetching data: {e}")
+            rf_rate = get_treasury_rate(tn_ticker)
+            if rf_rate:
+                st.session_state.risk_free_rate = float(rf_rate)
+                st.info(f"Risk-Free Rate ({tn_name}): {rf_rate:.2f}%")
+
+            # 3. Volatility Logic
+            if time_to_maturity < 0.25: vol_period = "3mo"
+            elif time_to_maturity < 0.5: vol_period = "6mo"
+            elif time_to_maturity < 1.0: vol_period = "1y"
+            elif time_to_maturity < 2.0: vol_period = "2y"
+            elif time_to_maturity < 5.0: vol_period = "5y"
+            else: vol_period = "10y"
+            
+            vol = get_historical_vol(ticker_symbol, vol_period)
+            if vol:
+                st.session_state.volatility = float(vol * 100)
+                st.info(f"Vol ({vol_period}): {vol*100:.1f}%")
+            else:
+                st.warning(f"Could not calc volatility for {vol_period}")
 
     st.markdown("---")
     
-    # 4. Inputs (Linked to Session State)
+    # Inputs linked to Session State
     current_price = st.number_input("Current Asset Price", value=100.0, key="spot_price")
     strike_price = st.number_input("Strike Price", value=100.0)
     
-    vol_input = st.number_input(
-        "Volatility (%)", 
-        value=20.00, 
-        step=0.1, 
-        format="%.2f", 
-        key="volatility"
-    )
+    vol_input = st.number_input("Volatility (%)", value=20.00, step=0.1, format="%.2f", key="volatility")
     volatility = vol_input / 100.0
     
-    # Risk Free Rate Input (Linked to key='risk_free_rate')
-    rf_input = st.number_input(
-        "Risk-Free Rate (%)", 
-        value=4.00, 
-        step=0.01, 
-        format="%.2f",
-        key="risk_free_rate"
-    )
+    rf_input = st.number_input("Risk-Free Rate (%)", value=4.00, step=0.01, format="%.2f", key="risk_free_rate")
     risk_free_rate = rf_input / 100.0
     
     st.markdown("---")
     st.header("Heatmap Settings")
     spot_min = st.number_input("Min Spot Price", value=current_price*0.8)
     spot_max = st.number_input("Max Spot Price", value=current_price*1.2)
+    
+    # These are the variables we need to match below
     vol_min_pct = st.slider("Min Volatility (%)", min_value=1.0, max_value=100.0, value=10.0)
     vol_max_pct = st.slider("Max Volatility (%)", min_value=1.0, max_value=100.0, value=30.0)
 
-# --- Model Selection & Calculation ---
+# --- Model Execution ---
 model_choice = st.selectbox("Select Pricing Model", ["Black-Scholes (European)", "Binomial Tree (American)"])
 
 if model_choice == "Black-Scholes (European)":
@@ -177,10 +185,9 @@ else:
     bs_temp = BlackScholes(time_to_maturity, strike_price, current_price, volatility, risk_free_rate)
     greeks = bs_temp.calculate_greeks()
 
-# --- Display Prices ---
+# --- Display Section ---
 st.subheader("Option Prices")
 col1, col2 = st.columns(2)
-
 with col1:
     st.markdown(f"""
         <div class="metric-card call-card">
@@ -188,7 +195,6 @@ with col1:
             <div class="metric-value" style="color: #2c7a7b;">${call_price:.2f}</div>
         </div>
     """, unsafe_allow_html=True)
-
 with col2:
     st.markdown(f"""
         <div class="metric-card put-card">
@@ -199,10 +205,8 @@ with col2:
 
 st.markdown("") 
 
-# --- Display Greeks ---
 st.subheader("Option Greeks")
 greek_tab1, greek_tab2 = st.tabs(["Call Greeks", "Put Greeks"])
-
 with greek_tab1:
     c1, c2, c3, c4, c5 = st.columns(5)
     c1.metric("Delta", f"{greeks['call']['delta']:.4f}")
@@ -210,7 +214,6 @@ with greek_tab1:
     c3.metric("Theta", f"{greeks['call']['theta']:.4f}")
     c4.metric("Vega", f"{greeks['call']['vega']:.4f}")
     c5.metric("Rho", f"{greeks['call']['rho']:.4f}")
-
 with greek_tab2:
     p1, p2, p3, p4, p5 = st.columns(5)
     p1.metric("Delta", f"{greeks['put']['delta']:.4f}")
@@ -220,8 +223,6 @@ with greek_tab2:
     p5.metric("Rho", f"{greeks['put']['rho']:.4f}")
 
 st.markdown("---")
-
-# --- Advanced Visualization Tabs ---
 st.subheader("Advanced Analysis")
 viz_tab1, viz_tab2 = st.tabs(["🔥 Heatmap", "🧊 3D Greek Surface"])
 
@@ -229,32 +230,28 @@ with viz_tab1:
     st.write("Visualizing how Price changes with Spot & Volatility")
     spot_range = np.linspace(spot_min, spot_max, 10)
     
-    # Convert slider percentages to decimals for the plot function
+    # FIXED: Using vol_max_pct instead of vol_max
     vol_range = np.linspace(vol_min_pct, vol_max_pct, 10) / 100.0
     
     call_heatmap, put_heatmap = plot_heatmap(model, spot_range, vol_range, strike_price)
-    
     h_col1, h_col2 = st.columns(2)
     with h_col1:
         st.write("**Call Price Heatmap**")
-        st.plotly_chart(call_heatmap, width='stretch')
+        st.plotly_chart(call_heatmap, width="stretch")
     with h_col2:
         st.write("**Put Price Heatmap**")
-        st.plotly_chart(put_heatmap, width='stretch')
+        st.plotly_chart(put_heatmap, width="stretch")
 
 with viz_tab2:
     st.write("Visualizing how Greeks sensitivity changes with Price & Time")
-    
     greek_selector = st.selectbox("Select Greek", ["delta", "gamma", "theta", "vega", "rho"])
-    
     surface_fig = plot_greek_surface(
         model_class=BlackScholes, 
         current_price=current_price,
         strike=strike_price,
         time_to_maturity=time_to_maturity,
         risk_free_rate=risk_free_rate,
-        volatility=volatility, # Already converted to decimal above
+        volatility=volatility,
         greek_type=greek_selector
     )
-    
-    st.plotly_chart(surface_fig, width='stretch')
+    st.plotly_chart(surface_fig, width="stretch")
