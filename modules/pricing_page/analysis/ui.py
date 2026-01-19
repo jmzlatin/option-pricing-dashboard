@@ -1,16 +1,15 @@
 import streamlit as st
-import numpy as np
 from utils.styles import get_custom_css
 
 # --- MODULAR IMPORTS ---
 from modules.pricing_page.sidebar.ui import render_sidebar
 from modules.pricing_page.model_selection.ui import render_model_selector, render_step_slider
-# NEW: Import Results Module
 from modules.pricing_page.results.ui import render_prices, render_greeks
+# NEW: Import Analysis Module
+from modules.pricing_page.analysis.ui import render_analysis
 
 from models.bs_model import BlackScholes
 from models.binomial import BinomialModel
-from plots import plot_heatmap, plot_greek_surface
 
 # Page configuration
 st.set_page_config(page_title="Pricing Models", page_icon="📊", layout="wide")
@@ -30,7 +29,7 @@ params = render_sidebar()
 # 4. Model Selection
 model_choice = render_model_selector()
 
-# 5. Run Models
+# 5. Run Logic
 if model_choice == "Black-Scholes (European)":
     model = BlackScholes(params['T'], params['K'], params['S'], params['sigma'], params['r'])
     call_price, put_price = model.calculate_prices()
@@ -42,38 +41,10 @@ else:
     bs_temp = BlackScholes(params['T'], params['K'], params['S'], params['sigma'], params['r'])
     greeks = bs_temp.calculate_greeks()
 
-# 6. Display Results (The code is now much cleaner!)
+# 6. Render Results
 render_prices(call_price, put_price)
 render_greeks(greeks)
 
-# 7. Visualizations
-st.subheader("Advanced Analysis")
-viz_tab1, viz_tab2 = st.tabs(["🔥 Heatmap", "🧊 3D Greek Surface"])
-
-with viz_tab1:
-    st.write("Visualizing how Price changes with Spot & Volatility")
-    spot_range = np.linspace(params['spot_min'], params['spot_max'], 10)
-    vol_range = np.linspace(params['vol_min'], params['vol_max'], 10) / 100.0
-    
-    call_heatmap, put_heatmap = plot_heatmap(model, spot_range, vol_range, params['K'])
-    h_col1, h_col2 = st.columns(2)
-    with h_col1:
-        st.write("**Call Price Heatmap**")
-        st.plotly_chart(call_heatmap, width="stretch")
-    with h_col2:
-        st.write("**Put Price Heatmap**")
-        st.plotly_chart(put_heatmap, width="stretch")
-
-with viz_tab2:
-    st.write("Visualizing how Greeks sensitivity changes with Price & Time")
-    greek_selector = st.selectbox("Select Greek", ["delta", "gamma", "theta", "vega", "rho"])
-    surface_fig = plot_greek_surface(
-        model_class=BlackScholes, 
-        current_price=params['S'],
-        strike=params['K'],
-        time_to_maturity=params['T'],
-        risk_free_rate=params['r'],
-        volatility=params['sigma'],
-        greek_type=greek_selector
-    )
-    st.plotly_chart(surface_fig, width="stretch")
+# 7. Render Analysis
+st.markdown("---")
+render_analysis(model, params)

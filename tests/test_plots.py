@@ -27,3 +27,4 @@ def test_plot_heatmap_generation():
     # Plotly stores data in a tuple of traces. We check the first one.
     assert fig_call.data[0].z is not None
     assert len(fig_call.data[0].z) > 0
+    
