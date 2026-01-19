@@ -10,8 +10,8 @@ st.markdown(get_custom_css(), unsafe_allow_html=True)
 
 st.title("🏗️ Options Strategy Architect")
 
-# 1. Sidebar (Returns the built legs)
-legs, strategy_name = render_strategy_sidebar()
+# 1. Sidebar (Returns legs + Market Assumptions)
+legs, strategy_name, market_params = render_strategy_sidebar()
 
-# 2. Main Analysis (Visualizes the legs)
-render_strategy_analysis(legs, strategy_name)
+# 2. Main Analysis (Now uses market_params for Greeks)
+render_strategy_analysis(legs, strategy_name, market_params)

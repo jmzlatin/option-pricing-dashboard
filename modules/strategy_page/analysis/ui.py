@@ -1,70 +1,76 @@
 import streamlit as st
 import numpy as np
 import plotly.graph_objects as go
-from models.strategies import calculate_payoff # We will reuse your existing logic if possible
+from modules.strategy_page.logic.greeks import calculate_net_greeks
 
-def render_strategy_analysis(legs, strategy_name, spot_price=100):
-    """Renders the Payoff Diagram and Leg Table."""
+def render_strategy_analysis(legs, strategy_name, market_params):
+    """Renders the Risk Dashboard, Payoff Diagram, and Leg Table."""
     if not legs:
         st.info("Select a strategy or add custom legs to see the payoff.")
         return
 
-    st.subheader(f"Payoff Diagram: {strategy_name}")
+    st.subheader(f"Strategy Analysis: {strategy_name}")
 
-    # 1. Determine X-Axis Range
+    # --- 1. Risk Dashboard (Net Greeks) ---
+    # Calculate using the market params from sidebar
+    net_greeks = calculate_net_greeks(
+        legs, 
+        market_params['spot'], 
+        market_params['T'], 
+        market_params['r'], 
+        market_params['sigma']
+    )
+    
+    st.caption("Net Portfolio Greeks (Theoretical Risk Exposure)")
+    g1, g2, g3, g4 = st.columns(4)
+    g1.metric("Net Delta", f"{net_greeks['delta']:.2f}", help="Price Sensitivity")
+    g2.metric("Net Theta", f"{net_greeks['theta']:.2f}", help="Daily Time Decay")
+    g3.metric("Net Gamma", f"{net_greeks['gamma']:.3f}", help="Acceleration of Delta")
+    g4.metric("Net Vega",  f"{net_greeks['vega']:.2f}",  help="Volatility Sensitivity")
+    
+    st.markdown("---")
+
+    # --- 2. Payoff Diagram ---
+    spot_price = market_params['spot']
     strikes = [leg['strike'] for leg in legs]
     min_s = min(strikes) if strikes else spot_price
     max_s = max(strikes) if strikes else spot_price
     margin = max(20, (max_s - min_s) * 0.5)
     
     spot_range = np.linspace(min_s - margin, max_s + margin, 200)
-    
-    # 2. Calculate Payoff (Vectorized)
     total_payoff = np.zeros_like(spot_range)
     
     for leg in legs:
-        # Check if Call or Put
         if leg['type'] == 'Call':
             payoff = np.maximum(spot_range - leg['strike'], 0)
-        else: # Put
+        else:
             payoff = np.maximum(leg['strike'] - spot_range, 0)
             
-        # Adjust for Premium
         if leg['position'] == 'Long':
             payoff = payoff - leg['premium']
-        else: # Short
+        else:
             payoff = leg['premium'] - payoff
-            
         total_payoff += payoff
 
-    # 3. Plot with Plotly
     fig = go.Figure()
-    
-    # Add Zero Line
     fig.add_hline(y=0, line_color="gray", line_dash="dash")
-    
-    # Add Payoff Curve
     fig.add_trace(go.Scatter(
-        x=spot_range, 
-        y=total_payoff, 
-        mode='lines', 
-        name='P&L',
-        fill='tozeroy',
+        x=spot_range, y=total_payoff, 
+        mode='lines', name='P&L', fill='tozeroy',
         line=dict(color='purple', width=3)
     ))
-    
-    # Mark Spot Price
     fig.add_vline(x=spot_price, line_color="orange", line_dash="dot", annotation_text="Spot")
     
     fig.update_layout(
-        title=f"{strategy_name} P&L at Expiry",
-        xaxis_title="Stock Price at Expiry",
-        yaxis_title="Profit / Loss ($)",
-        template="plotly_white"
+        title=f"Profit/Loss at Expiry",
+        xaxis_title="Stock Price",
+        yaxis_title="P&L ($)",
+        template="plotly_white",
+        height=400
     )
     
     st.plotly_chart(fig, width="stretch")
     
-    # 4. Show Details
+    # 3. Details
     with st.expander("View Strategy Composition"):
         st.table(legs)
